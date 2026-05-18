@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chill It Pro — Pricing Calculator</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0d0d0d; color: #e0e0e0; font-family: 'Courier New', monospace; font-size: 13px; }
+
+    header {
+      padding: 20px 28px 14px;
+      border-bottom: 1px solid #222;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+    header h1 { font-size: 16px; color: #fff; letter-spacing: 1px; }
+    header .sub { font-size: 11px; color: #444; margin-top: 3px; }
+    .badge-live {
+      display: inline-block; padding: 2px 8px; border-radius: 3px;
+      font-size: 10px; font-weight: bold;
+      background: #22c55e22; color: #22c55e;
+    }
+
+    .layout { display: grid; grid-template-columns: 300px 1fr; gap: 0; min-height: calc(100vh - 57px); }
+
+    /* ── PANEL IZQUIERDO (inputs) */
+    .sidebar {
+      border-right: 1px solid #1a1a1a;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .sidebar-section { }
+    .sidebar-label {
+      font-size: 10px; color: #555; text-transform: uppercase;
+      letter-spacing: 1px; margin-bottom: 10px; padding-bottom: 6px;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    .field { margin-bottom: 12px; }
+    .field label { display: block; font-size: 11px; color: #666; margin-bottom: 5px; }
+    .field input[type="number"],
+    .field select {
+      width: 100%; background: #111; border: 1px solid #2a2a2a;
+      color: #e0e0e0; font-family: 'Courier New', monospace; font-size: 13px;
+      padding: 7px 10px; border-radius: 4px;
+      transition: border-color 0.15s;
+    }
+    .field input:focus, .field select:focus {
+      outline: none; border-color: #444;
+    }
+    .field input[type="range"] {
+      width: 100%; accent-color: #22c55e; cursor: pointer;
+    }
+    .range-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .range-val { font-size: 13px; color: #fff; min-width: 40px; text-align: right; }
+
+    .radio-group { display: flex; gap: 6px; flex-wrap: wrap; }
+    .radio-group label {
+      display: flex; align-items: center; gap: 5px;
+      cursor: pointer; padding: 5px 10px;
+      border: 1px solid #222; border-radius: 3px;
+      font-size: 11px; color: #888;
+      transition: all 0.15s;
+    }
+    .radio-group input[type="radio"] { display: none; }
+    .radio-group input[type="radio"]:checked + span {
+      color: #22c55e;
+    }
+    .radio-group label:has(input:checked) {
+      border-color: #22c55e33; background: #22c55e11; color: #22c55e;
+    }
+
+    .note { font-size: 10px; color: #333; margin-top: 4px; }
+
+    /* ── PANEL DERECHO (resultados) */
+    .main { padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
+
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .card {
+      background: #111; border: 1px solid #1e1e1e;
+      border-radius: 5px; padding: 16px;
+    }
+    .card h2 {
+      font-size: 10px; color: #444; text-transform: uppercase;
+      letter-spacing: 1px; margin-bottom: 12px;
+    }
+
+    .kpi { font-size: 26px; font-weight: bold; color: #fff; }
+    .kpi.green { color: #22c55e; }
+    .kpi.yellow { color: #f59e0b; }
+    .kpi.red { color: #ef4444; }
+    .kpi-label { font-size: 10px; color: #444; margin-top: 3px; }
+
+    .breakdown { }
+    .brow {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 6px 0; border-bottom: 1px solid #1a1a1a; font-size: 12px;
+    }
+    .brow:last-child { border-bottom: none; }
+    .brow-label { color: #666; }
+    .brow-val { color: #ccc; }
+    .brow-val.accent { color: #fff; font-weight: bold; }
+    .brow-val.green { color: #22c55e; }
+    .brow-val.yellow { color: #f59e0b; }
+
+    /* Tabla */
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      font-size: 10px; color: #444; text-transform: uppercase;
+      letter-spacing: 0.5px; padding: 5px 8px; text-align: right;
+      border-bottom: 1px solid #1e1e1e;
+    }
+    th:first-child { text-align: left; }
+    td {
+      padding: 9px 8px; border-bottom: 1px solid #161616;
+      text-align: right; font-size: 12px; color: #999;
+    }
+    td:first-child { text-align: left; color: #ddd; }
+    tr:last-child td { border-bottom: none; }
+    tr.highlight td { background: #22c55e0a; color: #fff; }
+    tr.highlight td:first-child { color: #22c55e; }
+
+    .market-badge {
+      display: inline-block; padding: 1px 6px; border-radius: 2px;
+      font-size: 10px; font-weight: bold;
+    }
+    .badge-buy  { background: #3b82f622; color: #60a5fa; }
+    .badge-rent { background: #f59e0b22; color: #fbbf24; }
+    .badge-both { background: #8b5cf622; color: #a78bfa; }
+    .badge-no   { background: #55555522; color: #888; }
+
+    .separator { height: 1px; background: #1a1a1a; }
+
+    .roi-bar-wrap { margin-top: 8px; }
+    .roi-bar-bg {
+      height: 6px; background: #1a1a1a; border-radius: 3px; overflow: hidden; margin-top: 3px;
+    }
+    .roi-bar-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+      .sidebar { border-right: none; border-bottom: 1px solid #1a1a1a; }
+      .grid-3, .grid-2 { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Chill It Pro &mdash; Pricing Calculator</h1>
+    <div class="sub">Estudio de mercado · Análisis de costos · Descuentos por volumen</div>
+  </div>
+  <div><span class="badge-live">LIVE</span></div>
+</header>
+
+<div class="layout">
+
+  <!-- ── SIDEBAR (inputs) ───────────────────────────────────────────── -->
+  <aside class="sidebar">
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Configuración del cliente</div>
+
+      <div class="field">
+        <label>Número de máquinas</label>
+        <div class="range-row">
+          <input type="range" id="qty" min="1" max="20" value="1"
+                 oninput="update()">
+          <span class="range-val" id="qtyVal">1</span>
+        </div>
+        <div class="note">Descuento automático según volumen</div>
+      </div>
+
+      <div class="field">
+        <label>Modalidad a presentar</label>
+        <div class="radio-group">
+          <label><input type="radio" name="mode" value="ambos" checked onchange="update()"><span>Ambas</span></label>
+          <label><input type="radio" name="mode" value="renta" onchange="update()"><span>Renta</span></label>
+          <label><input type="radio" name="mode" value="venta" onchange="update()"><span>Venta</span></label>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">ROI del cliente</div>
+
+      <div class="field">
+        <label>Botellas extra / día gracias a Chill It</label>
+        <div class="range-row">
+          <input type="range" id="bottles" min="1" max="10" value="1"
+                 oninput="update()">
+          <span class="range-val" id="bottlesVal">1</span>
+        </div>
+        <div class="note">¿Cuántas botellas más vende el cliente al día?</div>
+      </div>
+
+      <div class="field">
+        <label>Precio medio por botella (€)</label>
+        <div class="range-row">
+          <input type="range" id="bottlePrice" min="10" max="150" value="25"
+                 oninput="update()">
+          <span class="range-val" id="bottlePriceVal">25</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Días trabajados / mes</label>
+        <input type="number" id="workDays" value="25" min="1" max="31"
+               oninput="update()">
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Costos (actualizar con Nico/Santi)</div>
+
+      <div class="field">
+        <label>Fabricación (USD)</label>
+        <input type="number" id="costFab" value="1500" oninput="update()">
+        <div class="note">Estimado, no confirmado</div>
+      </div>
+
+      <div class="field">
+        <label>Envío internacional (€)</label>
+        <input type="number" id="costShip" value="400" oninput="update()">
+      </div>
+
+      <div class="field">
+        <label>Instalación (€)</label>
+        <input type="number" id="costInstall" value="150" oninput="update()">
+      </div>
+
+      <div class="field">
+        <label>Tipo de cambio USD/EUR</label>
+        <input type="number" id="fxRate" value="1.07" step="0.01" oninput="update()">
+      </div>
+
+      <div class="field">
+        <label>Margen objetivo (%)</label>
+        <div class="range-row">
+          <input type="range" id="targetMargin" min="10" max="70" value="40"
+                 oninput="update()">
+          <span class="range-val" id="targetMarginVal">40%</span>
+        </div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- ── MAIN (resultados) ─────────────────────────────────────────── -->
+  <div class="main">
+
+    <!-- KPIs superiores -->
+    <div class="grid-3">
+      <div class="card">
+        <h2>Costo Unitario</h2>
+        <div class="kpi" id="kpiCost">—</div>
+        <div class="kpi-label">fabricación + envío + instalación</div>
+      </div>
+      <div class="card">
+        <h2>Margen Bruto (venta)</h2>
+        <div class="kpi green" id="kpiMargin">—</div>
+        <div class="kpi-label" id="kpiMarginLabel">sobre precio actual 3.500 €</div>
+      </div>
+      <div class="card">
+        <h2>Payback Renta</h2>
+        <div class="kpi yellow" id="kpiPayback">—</div>
+        <div class="kpi-label" id="kpiPaybackLabel">meses para recuperar costo</div>
+      </div>
+    </div>
+
+    <!-- Precio para este cliente -->
+    <div class="grid-2" id="pricingSection">
+      <div class="card" id="cardVenta">
+        <h2>Precio de Venta &mdash; <span id="ventaQty">1</span> máquina(s)</h2>
+        <div class="breakdown" id="ventaBreakdown"></div>
+      </div>
+      <div class="card" id="cardRenta">
+        <h2>Precio de Renta &mdash; <span id="rentaQty">1</span> máquina(s)</h2>
+        <div class="breakdown" id="rentaBreakdown"></div>
+      </div>
+    </div>
+
+    <!-- ROI del cliente -->
+    <div class="card">
+      <h2>ROI del cliente &mdash; argumento de venta</h2>
+      <div class="grid-2" style="gap:20px">
+        <div class="breakdown" id="roiBreakdown"></div>
+        <div>
+          <div style="font-size:11px; color:#444; margin-bottom:8px;">Días para cubrir la cuota mensual</div>
+          <div class="roi-bar-wrap">
+            <div style="font-size:15px; color:#fff; font-weight:bold">
+              <span id="roiDays" style="color:#22c55e">—</span>
+              <span style="font-size:11px; color:#666; font-weight:normal"> días para pagar la cuota</span>
+            </div>
+            <div class="roi-bar-bg" style="margin-top:6px">
+              <div class="roi-bar-fill" id="roiBar" style="background:#22c55e; width:0%"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:9px;color:#333;margin-top:2px">
+              <span>1 día</span><span>30 días</span>
+            </div>
+          </div>
+          <div style="margin-top:16px; font-size:11px; color:#444; margin-bottom:8px;">Escenarios</div>
+          <table id="roiScenarios" style="font-size:11px">
+            <thead>
+              <tr>
+                <th style="text-align:left">Botellas extra/día</th>
+                <th>Ingreso extra/día</th>
+                <th>Días para pagar cuota</th>
+              </tr>
+            </thead>
+            <tbody id="roiScenariosBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabla de descuentos por volumen -->
+    <div class="card">
+      <h2>Tabla de Descuentos por Volumen</h2>
+      <table id="discountTable">
+        <thead>
+          <tr>
+            <th>Unidades</th>
+            <th>Dto.</th>
+            <th>Precio venta</th>
+            <th>Renta/mes</th>
+            <th>Margen venta</th>
+            <th>Payback renta</th>
+          </tr>
+        </thead>
+        <tbody id="discountBody"></tbody>
+      </table>
+    </div>
+
+    <!-- Precio mínimo con margen objetivo -->
+    <div class="card">
+      <h2>Precio mínimo para alcanzar el margen objetivo</h2>
+      <div class="breakdown" id="minPriceBreakdown"></div>
+    </div>
+
+    <!-- Comparativa de mercado -->
+    <div class="card">
+      <h2>Comparativa de Mercado &mdash; Cavas / Vinotecas España</h2>
+      <div style="font-size:10px; color:#333; margin-bottom:10px;">
+        Prácticamente no existe el alquiler especializado de cavas en hostelería española. El mercado opera en compra o renting bancario genérico (sin servicio incluido).
+      </div>
+      <table id="marketTable">
+        <thead>
+          <tr>
+            <th>Marca / Modelo</th>
+            <th>Botellas</th>
+            <th>Precio compra</th>
+            <th>Renting est. 24m</th>
+            <th>Clase energ.</th>
+            <th>Modalidad</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Vinobox V110GC 1T</td>
+            <td>110</td>
+            <td>1.190 €</td>
+            <td>~55 €/mes</td>
+            <td>B</td>
+            <td><span class="market-badge badge-buy">Solo compra</span></td>
+          </tr>
+          <tr>
+            <td>Vinobox V110GC 2T</td>
+            <td>111</td>
+            <td>1.099 €</td>
+            <td>~51 €/mes</td>
+            <td>B</td>
+            <td><span class="market-badge badge-buy">Solo compra</span></td>
+          </tr>
+          <tr>
+            <td>Vinobox V192 PRO</td>
+            <td>192</td>
+            <td>1.075 €</td>
+            <td>~50 €/mes</td>
+            <td>B</td>
+            <td><span class="market-badge badge-buy">Solo compra</span></td>
+          </tr>
+          <tr>
+            <td>Liebherr WKB 3212</td>
+            <td>164</td>
+            <td>1.490 €</td>
+            <td>~68 €/mes</td>
+            <td>A</td>
+            <td><span class="market-badge badge-buy">Solo compra</span></td>
+          </tr>
+          <tr>
+            <td>Liebherr WK201</td>
+            <td>200</td>
+            <td>2.499 €</td>
+            <td>~115 €/mes</td>
+            <td>A+</td>
+            <td><span class="market-badge badge-buy">Solo compra</span></td>
+          </tr>
+          <tr>
+            <td>EuroCave Pure S</td>
+            <td>74</td>
+            <td>4.679 €</td>
+            <td>~215 €/mes</td>
+            <td>A+</td>
+            <td><span class="market-badge badge-buy">Solo compra</span></td>
+          </tr>
+          <tr>
+            <td>EuroCave Pure S Multi-T</td>
+            <td>74</td>
+            <td>5.033 €</td>
+            <td>~232 €/mes</td>
+            <td>A+</td>
+            <td><span class="market-badge badge-buy">Solo compra</span></td>
+          </tr>
+          <tr id="chillItRow" class="highlight">
+            <td>Chill It Pro ★</td>
+            <td>—</td>
+            <td id="mktVenta">3.500 €</td>
+            <td id="mktRenta">150 €/mes</td>
+            <td>A (−60% vs conv.)</td>
+            <td><span class="market-badge badge-both">Venta + Renta</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="font-size:10px; color:#2a2a2a; margin-top:8px;">
+        * Renting estimado calculado a 24 meses con tasa del 10% anual sobre precio de compra + seguro + gestión. No incluye servicio técnico (Chill It sí lo incluye en su renta).
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /layout -->
+
+<script>
+const DISCOUNTS = [
+  { from: 1,  to: 1,   pct: 0    },
+  { from: 2,  to: 3,   pct: 0.05 },
+  { from: 4,  to: 6,   pct: 0.10 },
+  { from: 7,  to: 12,  pct: 0.15 },
+  { from: 13, to: 999, pct: 0.20 },
+];
+
+const BASE_VENTA = 3500;
+const BASE_RENTA = 150;
+const IVA = 0.21;
+
+function getDiscount(qty) {
+  return DISCOUNTS.find(d => qty >= d.from && qty <= d.to)?.pct ?? 0;
+}
+
+function eur(n) {
+  return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
+}
+function pct(n) { return (n * 100).toFixed(1) + '%'; }
+
+function row(label, val, cls = '') {
+  return `<div class="brow"><span class="brow-label">${label}</span><span class="brow-val ${cls}">${val}</span></div>`;
+}
+
+function update() {
+  const qty          = +document.getElementById('qty').value;
+  const bottles      = +document.getElementById('bottles').value;
+  const bottlePrice  = +document.getElementById('bottlePrice').value;
+  const workDays     = +document.getElementById('workDays').value || 22;
+  const costFabUsd   = +document.getElementById('costFab').value;
+  const costShip     = +document.getElementById('costShip').value;
+  const costInstall  = +document.getElementById('costInstall').value;
+  const fx           = +document.getElementById('fxRate').value || 1.07;
+  const targetMargin = +document.getElementById('targetMargin').value / 100;
+  const mode         = document.querySelector('input[name="mode"]:checked').value;
+
+  // Labels
+  document.getElementById('qtyVal').textContent          = qty;
+  document.getElementById('bottlesVal').textContent      = bottles;
+  document.getElementById('bottlePriceVal').textContent  = bottlePrice + ' €';
+  document.getElementById('targetMarginVal').textContent = (+document.getElementById('targetMargin').value) + '%';
+
+  // ── Costos
+  const costFabEur = costFabUsd / fx;
+  const costUnit   = costFabEur + costShip + costInstall;
+  const costTotal  = costUnit * qty;
+
+  // ── Descuento
+  const dto = getDiscount(qty);
+  const ventaUnit = BASE_VENTA * (1 - dto);
+  const rentaUnit = BASE_RENTA * (1 - dto);
+
+  // ── Márgenes
+  const marginVenta = (ventaUnit - costUnit) / ventaUnit;
+  const paybackMeses = costUnit / (rentaUnit - 5); // ~5€/mes mantenimiento
+
+  // ── KPIs
+  document.getElementById('kpiCost').textContent = eur(costUnit);
+  const marginEl = document.getElementById('kpiMargin');
+  marginEl.textContent = pct(marginVenta);
+  marginEl.className = 'kpi ' + (marginVenta >= 0.30 ? 'green' : marginVenta >= 0.15 ? 'yellow' : 'red');
+  document.getElementById('kpiMarginLabel').textContent = `sobre precio con dto: ${eur(ventaUnit)}`;
+  document.getElementById('kpiPayback').textContent = paybackMeses.toFixed(1) + ' m';
+
+  // ── Cantidades mostradas
+  document.getElementById('ventaQty').textContent = qty;
+  document.getElementById('rentaQty').textContent = qty;
+
+  // ── Precio venta
+  const ventaTotal   = ventaUnit * qty;
+  const benefTotal   = ventaTotal - costTotal;
+  document.getElementById('ventaBreakdown').innerHTML =
+    row('Precio base / unidad', eur(BASE_VENTA)) +
+    row(`Descuento ${(dto*100).toFixed(0)}%`, dto > 0 ? `−${eur(BASE_VENTA * dto)}` : '0 €', dto > 0 ? 'yellow' : '') +
+    row('Precio con dto / unidad', eur(ventaUnit), 'accent') +
+    row('+ IVA (21%)', eur(ventaUnit * IVA)) +
+    row('Precio cliente (con IVA)', eur(ventaUnit * (1 + IVA)), 'accent') +
+    row(`Total ${qty} unid. (con IVA)`, eur(ventaTotal * (1 + IVA)), 'accent') +
+    row('Costo total', eur(costTotal)) +
+    row('Beneficio total', eur(benefTotal), benefTotal > 0 ? 'green' : 'red') +
+    row('Margen bruto', pct(marginVenta), marginVenta >= 0.3 ? 'green' : 'yellow');
+
+  // ── Precio renta
+  const rentaTotal   = rentaUnit * qty;
+  const rentaAnual   = rentaTotal * 12;
+  document.getElementById('rentaBreakdown').innerHTML =
+    row('Cuota base / mes / unidad', eur(BASE_RENTA) + ' + IVA') +
+    row(`Descuento ${(dto*100).toFixed(0)}%`, dto > 0 ? `−${eur(BASE_RENTA * dto)}` : '0 €', dto > 0 ? 'yellow' : '') +
+    row('Cuota con dto / unidad', eur(rentaUnit) + ' + IVA', 'accent') +
+    row('+ IVA (21%)', eur(rentaUnit * IVA)) +
+    row('Cuota cliente (con IVA)', eur(rentaUnit * (1 + IVA)), 'accent') +
+    row(`Total / mes (${qty} unid. con IVA)`, eur(rentaTotal * (1 + IVA)), 'accent') +
+    row('Total / año (con IVA)', eur(rentaAnual * (1 + IVA))) +
+    row('Costo total máquinas', eur(costTotal)) +
+    row('Payback (meses)', paybackMeses.toFixed(1) + ' m', 'yellow') +
+    row('(Incluye servicio técnico)', '✓', 'green');
+
+  // ── Mostrar/ocultar cards según modo
+  document.getElementById('cardVenta').style.display = (mode === 'renta') ? 'none' : '';
+  document.getElementById('cardRenta').style.display = (mode === 'venta') ? 'none' : '';
+  if (mode !== 'ambos') {
+    document.getElementById('pricingSection').style.gridTemplateColumns = '1fr';
+  } else {
+    document.getElementById('pricingSection').style.gridTemplateColumns = '1fr 1fr';
+  }
+
+  // ── ROI del cliente
+  const rentaConIva    = rentaUnit * (1 + IVA);
+  const extraDiario    = bottles * bottlePrice;
+  const extraMensual   = extraDiario * workDays;
+  const extraAnual     = extraMensual * 12;
+  const diasParaCubrir = rentaConIva / extraDiario;
+
+  document.getElementById('roiBreakdown').innerHTML =
+    row('Botellas extra / día', bottles) +
+    row('Precio medio botella', eur(bottlePrice)) +
+    row('Ingreso extra / día', eur(extraDiario), 'green') +
+    row(`Ingreso extra / mes (${workDays}d)`, eur(extraMensual), 'green') +
+    row('Ingreso extra / año', eur(extraAnual), 'green') +
+    row('Cuota renta (con IVA)', eur(rentaConIva)) +
+    row('Días para pagar la cuota', diasParaCubrir < 1 ? '<1 día' : diasParaCubrir.toFixed(1) + ' días', 'accent');
+
+  document.getElementById('roiDays').textContent = diasParaCubrir < 1 ? '<1' : diasParaCubrir.toFixed(1);
+
+  const barPct = Math.min(100, (diasParaCubrir / 30) * 100);
+  document.getElementById('roiBar').style.width = barPct + '%';
+  document.getElementById('roiBar').style.background = diasParaCubrir <= 5 ? '#22c55e' : diasParaCubrir <= 15 ? '#f59e0b' : '#ef4444';
+
+  // ── Tabla escenarios
+  const scenarioBody = document.getElementById('roiScenariosBody');
+  scenarioBody.innerHTML = '';
+  [1, 2, 3, 5, 10].forEach(b => {
+    const ingDia  = b * bottlePrice;
+    const dias    = rentaConIva / ingDia;
+    const isCurrent = b === bottles;
+    const tr = document.createElement('tr');
+    if (isCurrent) tr.className = 'highlight';
+    tr.innerHTML = `
+      <td>${b} botella${b > 1 ? 's' : ''}/día</td>
+      <td style="text-align:right; color:#22c55e">${eur(ingDia)}/día</td>
+      <td style="text-align:right; color:${dias<=5?'#22c55e':dias<=15?'#f59e0b':'#ef4444'}">
+        ${dias < 1 ? '<1' : dias.toFixed(1)} días
+      </td>
+    `;
+    scenarioBody.appendChild(tr);
+  });
+
+  // ── Precio mínimo con margen objetivo
+  const minVenta = costUnit / (1 - targetMargin);
+  const diffVenta = ventaUnit - minVenta;
+  const minRentaMensual = costUnit * targetMargin / 12 + costUnit / 36;
+  document.getElementById('minPriceBreakdown').innerHTML =
+    row('Costo unitario', eur(costUnit)) +
+    row(`Margen objetivo (${(targetMargin*100).toFixed(0)}%)`, pct(targetMargin)) +
+    row('Precio mínimo venta / unidad', eur(minVenta), 'accent') +
+    row('Precio actual con dto', eur(ventaUnit)) +
+    row('Margen sobre precio mínimo', eur(diffVenta), diffVenta >= 0 ? 'green' : 'red') +
+    row('Cuota mínima renta / mes', eur(minRentaMensual), 'accent') +
+    (minRentaMensual < rentaUnit
+      ? row('Precio actual cubre el objetivo', '✓', 'green')
+      : row('Precio actual NO cubre el objetivo', '✗', 'red'));
+
+  // ── Tabla descuentos
+  const tbody = document.getElementById('discountBody');
+  tbody.innerHTML = '';
+  DISCOUNTS.forEach(d => {
+    const pv   = BASE_VENTA * (1 - d.pct);
+    const pr   = BASE_RENTA * (1 - d.pct);
+    const mg   = (pv - costUnit) / pv;
+    const pb   = costUnit / (pr - 5);
+    const isCurrentQty = qty >= d.from && qty <= d.to;
+    const label = d.to >= 999 ? `${d.from}+` : `${d.from}–${d.to}`;
+    const tr = document.createElement('tr');
+    if (isCurrentQty) tr.className = 'highlight';
+    tr.innerHTML = `
+      <td>${label} maq.</td>
+      <td style="color:${d.pct>0?'#f59e0b':'#555'}">${(d.pct*100).toFixed(0)}%</td>
+      <td>${eur(pv)} <span style="color:#444;font-size:10px">(${eur(pv*(1+IVA))} c/IVA)</span></td>
+      <td>${eur(pr)}/mes <span style="color:#444;font-size:10px">(${eur(pr*(1+IVA))} c/IVA)</span></td>
+      <td style="color:${mg>=0.3?'#22c55e':mg>=0.15?'#f59e0b':'#ef4444'}">${pct(mg)}</td>
+      <td style="color:#f59e0b">${pb.toFixed(1)} m</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // ── Actualizar fila Chill It en tabla mercado
+  const dtoLabel = dto > 0 ? ` (${(dto*100).toFixed(0)}% dto)` : '';
+  document.getElementById('mktVenta').textContent = `${eur(ventaUnit)} + IVA = ${eur(ventaUnit*(1+IVA))}${dtoLabel}`;
+  document.getElementById('mktRenta').textContent = `${eur(rentaUnit)}/mes + IVA = ${eur(rentaUnit*(1+IVA))}/mes${dtoLabel}`;
+}
+
+// Inicio
+update();
+</script>
+</body>
+</html>
