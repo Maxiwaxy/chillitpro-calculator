@@ -437,20 +437,16 @@
 </div><!-- /layout -->
 
 <script>
-const DISCOUNTS = [
-  { from: 1,  to: 1,   pct: 0    },
-  { from: 2,  to: 3,   pct: 0.05 },
-  { from: 4,  to: 6,   pct: 0.10 },
-  { from: 7,  to: 12,  pct: 0.15 },
-  { from: 13, to: 999, pct: 0.20 },
+const TIERS = [
+  { label: '1–2',  from: 1,  to: 2,   ventaUnit: 3500, rentaUnit: 150 },
+  { label: '3–9',  from: 3,  to: 9,   ventaUnit: 3150, rentaUnit: 135 },
+  { label: '10+',  from: 10, to: 999, ventaUnit: 2800, rentaUnit: 120 },
 ];
 
-const BASE_VENTA = 3500;
-const BASE_RENTA = 150;
 const IVA = 0.21;
 
-function getDiscount(qty) {
-  return DISCOUNTS.find(d => qty >= d.from && qty <= d.to)?.pct ?? 0;
+function getTier(qty) {
+  return TIERS.find(t => qty >= t.from && qty <= t.to) ?? TIERS[0];
 }
 
 function eur(n) {
@@ -485,10 +481,10 @@ function update() {
   const costUnit   = costFabEur + costShip + costInstall;
   const costTotal  = costUnit * qty;
 
-  // ── Descuento
-  const dto = getDiscount(qty);
-  const ventaUnit = BASE_VENTA * (1 - dto);
-  const rentaUnit = BASE_RENTA * (1 - dto);
+  // ── Tramo de precios
+  const tier = getTier(qty);
+  const ventaUnit = tier.ventaUnit;
+  const rentaUnit = tier.rentaUnit;
 
   // ── Márgenes
   const marginVenta = (ventaUnit - costUnit) / ventaUnit;
@@ -499,7 +495,7 @@ function update() {
   const marginEl = document.getElementById('kpiMargin');
   marginEl.textContent = pct(marginVenta);
   marginEl.className = 'kpi ' + (marginVenta >= 0.30 ? 'green' : marginVenta >= 0.15 ? 'yellow' : 'red');
-  document.getElementById('kpiMarginLabel').textContent = `sobre precio con dto: ${eur(ventaUnit)}`;
+  document.getElementById('kpiMarginLabel').textContent = `sobre precio tarifa: ${eur(ventaUnit)}`;
   document.getElementById('kpiPayback').textContent = paybackMeses.toFixed(1) + ' m';
 
   // ── Cantidades mostradas
@@ -510,9 +506,8 @@ function update() {
   const ventaTotal   = ventaUnit * qty;
   const benefTotal   = ventaTotal - costTotal;
   document.getElementById('ventaBreakdown').innerHTML =
-    row('Precio base / unidad', eur(BASE_VENTA)) +
-    row(`Descuento ${(dto*100).toFixed(0)}%`, dto > 0 ? `−${eur(BASE_VENTA * dto)}` : '0 €', dto > 0 ? 'yellow' : '') +
-    row('Precio con dto / unidad', eur(ventaUnit), 'accent') +
+    row('Tramo de volumen', tier.label + ' máquinas') +
+    row('Precio tarifa / unidad', eur(ventaUnit), 'accent') +
     row('+ IVA (21%)', eur(ventaUnit * IVA)) +
     row('Precio cliente (con IVA)', eur(ventaUnit * (1 + IVA)), 'accent') +
     row(`Total ${qty} unid. (con IVA)`, eur(ventaTotal * (1 + IVA)), 'accent') +
@@ -524,13 +519,13 @@ function update() {
   const rentaTotal   = rentaUnit * qty;
   const rentaAnual   = rentaTotal * 12;
   document.getElementById('rentaBreakdown').innerHTML =
-    row('Cuota base / mes / unidad', eur(BASE_RENTA) + ' + IVA') +
-    row(`Descuento ${(dto*100).toFixed(0)}%`, dto > 0 ? `−${eur(BASE_RENTA * dto)}` : '0 €', dto > 0 ? 'yellow' : '') +
-    row('Cuota con dto / unidad', eur(rentaUnit) + ' + IVA', 'accent') +
+    row('Tramo de volumen', tier.label + ' máquinas') +
+    row('Cuota tarifa / mes / unidad', eur(rentaUnit) + ' + IVA', 'accent') +
     row('+ IVA (21%)', eur(rentaUnit * IVA)) +
     row('Cuota cliente (con IVA)', eur(rentaUnit * (1 + IVA)), 'accent') +
     row(`Total / mes (${qty} unid. con IVA)`, eur(rentaTotal * (1 + IVA)), 'accent') +
     row('Total / año (con IVA)', eur(rentaAnual * (1 + IVA))) +
+    row('Contrato mínimo', '12 meses') +
     row('Costo total máquinas', eur(costTotal)) +
     row('Payback (meses)', paybackMeses.toFixed(1) + ' m', 'yellow') +
     row('(Incluye servicio técnico)', '✓', 'green');
@@ -600,23 +595,20 @@ function update() {
       ? row('Precio actual cubre el objetivo', '✓', 'green')
       : row('Precio actual NO cubre el objetivo', '✗', 'red'));
 
-  // ── Tabla descuentos
+  // ── Tabla tramos de volumen
   const tbody = document.getElementById('discountBody');
   tbody.innerHTML = '';
-  DISCOUNTS.forEach(d => {
-    const pv   = BASE_VENTA * (1 - d.pct);
-    const pr   = BASE_RENTA * (1 - d.pct);
-    const mg   = (pv - costUnit) / pv;
-    const pb   = costUnit / (pr - 5);
-    const isCurrentQty = qty >= d.from && qty <= d.to;
-    const label = d.to >= 999 ? `${d.from}+` : `${d.from}–${d.to}`;
+  TIERS.forEach(t => {
+    const mg = (t.ventaUnit - costUnit) / t.ventaUnit;
+    const pb = costUnit / (t.rentaUnit - 5);
+    const isCurrentQty = qty >= t.from && qty <= t.to;
     const tr = document.createElement('tr');
     if (isCurrentQty) tr.className = 'highlight';
     tr.innerHTML = `
-      <td>${label} maq.</td>
-      <td style="color:${d.pct>0?'#f59e0b':'#555'}">${(d.pct*100).toFixed(0)}%</td>
-      <td>${eur(pv)} <span style="color:#444;font-size:10px">(${eur(pv*(1+IVA))} c/IVA)</span></td>
-      <td>${eur(pr)}/mes <span style="color:#444;font-size:10px">(${eur(pr*(1+IVA))} c/IVA)</span></td>
+      <td>${t.label} maq.</td>
+      <td style="color:${t.from>1?'#f59e0b':'#555'}">${t.from === 1 ? '—' : t.from === 3 ? '−10%' : '−20%'}</td>
+      <td>${eur(t.ventaUnit)} <span style="color:#444;font-size:10px">(${eur(t.ventaUnit*(1+IVA))} c/IVA)</span></td>
+      <td>${eur(t.rentaUnit)}/mes <span style="color:#444;font-size:10px">(${eur(t.rentaUnit*(1+IVA))} c/IVA)</span></td>
       <td style="color:${mg>=0.3?'#22c55e':mg>=0.15?'#f59e0b':'#ef4444'}">${pct(mg)}</td>
       <td style="color:#f59e0b">${pb.toFixed(1)} m</td>
     `;
@@ -624,9 +616,8 @@ function update() {
   });
 
   // ── Actualizar fila Chill It en tabla mercado
-  const dtoLabel = dto > 0 ? ` (${(dto*100).toFixed(0)}% dto)` : '';
-  document.getElementById('mktVenta').textContent = `${eur(ventaUnit)} + IVA = ${eur(ventaUnit*(1+IVA))}${dtoLabel}`;
-  document.getElementById('mktRenta').textContent = `${eur(rentaUnit)}/mes + IVA = ${eur(rentaUnit*(1+IVA))}/mes${dtoLabel}`;
+  document.getElementById('mktVenta').textContent = `${eur(ventaUnit)} + IVA = ${eur(ventaUnit*(1+IVA))} (${tier.label} maq.)`;
+  document.getElementById('mktRenta').textContent = `${eur(rentaUnit)}/mes + IVA = ${eur(rentaUnit*(1+IVA))}/mes (${tier.label} maq.)`;
 }
 
 // Inicio
